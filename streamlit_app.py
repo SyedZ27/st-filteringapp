@@ -51,8 +51,13 @@ def convert_height_to_cm(height_str):
 # Clean and preprocess data
 def preprocess_data(data):
     """Cleans and preprocesses the raw data."""
-    data['Date Of Birth'] = pd.to_datetime(data['Date Of Birth'], errors='coerce', dayfirst=True)
-    data['RealAge'] = data['Date Of Birth'].apply(lambda x: calculate_age(x) if pd.notnull(x) else None)
+    if 'Date Of Birth' in data.columns:
+        data['Date Of Birth'] = pd.to_datetime(data['Date Of Birth'], errors='coerce', dayfirst=True)
+        data['RealAge'] = data['Date Of Birth'].apply(lambda x: calculate_age(x) if pd.notnull(x) else None)
+    else:
+        st.warning("'Date Of Birth' column not found. Age calculation will be skipped.")
+        data['RealAge'] = None
+    
     return data
 
 # Split profiles into girls and boys
@@ -143,58 +148,64 @@ def save_matches_to_csv(selected_profile, matches, output_directory):
 def main():
     st.title("Profile Matching Application")
     
-    # File uploader widget
     file_path = st.file_uploader("Upload an Excel file", type=["xlsx"])
     
     if file_path is not None:
-        # Load and preprocess data
-        data = load_data(file_path)
-
-        # Debugging: Display actual column names
-        st.write("Columns in the uploaded file:", data.columns.tolist())
-
-        # Adjust column names: Remove leading/trailing spaces, and make lowercase
-        data.columns = data.columns.str.strip()
-        data.columns = data.columns.str.lower()
-
-        # Preprocess data
-        data = preprocess_data(data)
-
-        # Try accessing columns and handle KeyError
         try:
-            profiles = data[['jioid', 'name', 'cast', 'marital status', 'hight/ft', 'realage', 'bride/bridegroom', 
-                             'city', 'age', 'education', 'salary-pa', 'denomination', 'occupation', 'joined', 'expire_date', 'mobile']]
-        except KeyError as e:
-            st.error(f"KeyError: The following columns are missing: {e}")
-            return
-
-        profiles['jioid'] = profiles['jioid'].astype(str)
-
-        girls_profiles, boys_profiles = split_profiles(profiles)
-
-        # Input for profile ID
-        input_id = st.text_input("Enter the JIOID of the profile to match:")
-
-        if st.button("Find Matches"):
-            if input_id in girls_profiles['jioid'].values:
-                selected_profile = girls_profiles[girls_profiles['jioid'] == input_id].iloc[0]
-                matches = filter_matches_for_girl(selected_profile, boys_profiles)
-            elif input_id in boys_profiles['jioid'].values:
-                selected_profile = boys_profiles[boys_profiles['jioid'] == input_id].iloc[0]
-                matches = filter_matches_for_boy(selected_profile, girls_profiles)
-            else:
-                st.error(f"No profile found with JIOID {input_id}.")
+            data = load_data(file_path)
+            
+            # Display actual column names
+            st.write("Columns in the uploaded file:", data.columns.tolist())
+            
+            # Preprocess data
+            data = preprocess_data(data)
+            
+            # Define required columns (including 'Date Of Birth')
+            required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'Bride/Bridegroom', 
+                                'City', 'Age', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 
+                                'joined', 'expire_date', 'Mobile', 'Date Of Birth']
+            
+            # Check for missing columns
+            missing_columns = [col for col in required_columns if col not in data.columns]
+            
+            if missing_columns:
+                st.error(f"The following required columns are missing: {', '.join(missing_columns)}")
+                st.error("Please ensure your Excel file contains all required columns.")
                 return
+            
+            # Select only the required columns
+            profiles = data[required_columns]
+            profiles['JIOID'] = profiles['JIOID'].astype(str)
+            
+            girls_profiles, boys_profiles = split_profiles(profiles)
+            
+            # Input for profile ID
+            input_id = st.text_input("Enter the JIOID of the profile to match:")
 
-            st.write("Matched profiles:")
-            st.write(matches)
+            if st.button("Find Matches"):
+                if input_id in girls_profiles['JIOID'].values:
+                    selected_profile = girls_profiles[girls_profiles['JIOID'] == input_id].iloc[0]
+                    matches = filter_matches_for_girl(selected_profile, boys_profiles)
+                elif input_id in boys_profiles['JIOID'].values:
+                    selected_profile = boys_profiles[boys_profiles['JIOID'] == input_id].iloc[0]
+                    matches = filter_matches_for_boy(selected_profile, girls_profiles)
+                else:
+                    st.error(f"No profile found with JIOID {input_id}.")
+                    return
 
-            if st.button("Save Matches"):
-                output_directory = "FINAL"
-                if not os.path.exists(output_directory):
-                    os.makedirs(output_directory)
-                save_matches_to_csv(selected_profile, matches, output_directory)
-                st.success(f"Matched profiles have been saved in the '{output_directory}' directory.")
+                st.write("Matched profiles:")
+                st.write(matches)
+
+                if st.button("Save Matches"):
+                    output_directory = "FINAL"
+                    if not os.path.exists(output_directory):
+                        os.makedirs(output_directory)
+                    save_matches_to_csv(selected_profile, matches, output_directory)
+                    st.success(f"Matched profiles have been saved in the '{output_directory}' directory.")
+            
+        except Exception as e:
+            st.error(f"An error occurred while processing the file: {str(e)}")
+            st.error("Please check your Excel file and ensure it's in the correct format.")
 
 if __name__ == "__main__":
     main()
