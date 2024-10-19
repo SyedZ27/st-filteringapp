@@ -102,19 +102,19 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
     girl_education_level = map_education_level(girl['Education_Standardized'])
     boys_profiles['Education_Level'] = boys_profiles['Education_Standardized'].apply(map_education_level)
 
-    # Filter boys based on matching criteria
+    # Filter boys based on matching criteria, using 'Denomination' instead of 'Cast'
     matches = boys_profiles[
         (boys_profiles['Hight/CM'] > girl['Hight/CM']) &
         (boys_profiles['Marital Status'] == girl['Marital Status']) &
         (boys_profiles['Effective_boys_Age'] >= girl_age) &
         (boys_profiles['Effective_boys_Age'] <= girl_age + 5) &
-        (boys_profiles['Cast'] == girl['Cast']) &
+        (boys_profiles['Denomination'] == girl['Denomination']) &  # Changed here
         (boys_profiles['City'] == girl['City']) &
         (boys_profiles['Education_Level'] == girl_education_level)
     ]
 
     # Return relevant columns
-    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
+    return matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
 # Filter matches for a boy using 'Education_Standardized'
 def filter_matches_for_boy_updated(boy, girls_profiles):
@@ -122,17 +122,18 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
     boy_education_level = map_education_level(boy['Education_Standardized'])
     girls_profiles['Education_Level'] = girls_profiles['Education_Standardized'].apply(map_education_level)
 
+    # Filter girls based on matching criteria, using 'Denomination' instead of 'Cast'
     matches = girls_profiles[
         (girls_profiles['Hight/CM'] < boy['Hight/CM']) &
         (girls_profiles['Marital Status'] == boy['Marital Status']) &
         (girls_profiles['Age'] < boy['Age']) &
-        (girls_profiles['Cast'] == boy['Cast']) &
+        (girls_profiles['Denomination'] == boy['Denomination']) &  # Changed here
         (girls_profiles['City'] == boy['City']) &
         (girls_profiles['Education_Level'] == boy_education_level)
     ]
 
     # Return relevant columns
-    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
+    return matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
 # Save matches to a CSV file
 def save_matches_to_csv(selected_profile, matches, output_directory):
