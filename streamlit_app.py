@@ -203,9 +203,8 @@ def main():
                     output_directory = "FINAL"
                     if not os.path.exists(output_directory):
                         os.makedirs(output_directory)
-
                     save_matches_to_csv(selected_profile, matches, output_directory)
-                    st.success(f"Matches saved to {output_directory} directory.")
+                    st.success(f"Matches saved to {output_directory}.")
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
