@@ -161,16 +161,15 @@ def main():
             # Flexibility slider
             flexibility = st.slider("Set Flexibility for Matching Criteria", 0, 10, 0)
             
-            # Input fields for JIOID
-            selected_girl_jioid = st.text_input("Enter the girl's JIOID to match:")
-            selected_boy_jioid = st.text_input("Enter the boy's JIOID to match:")
+            # Input field for JIOID
+            selected_jioid = st.text_input("Enter JIOID of the user to match profiles:")
 
             if st.button("Find Matches"):
-                if selected_girl_jioid in girls_profiles['JIOID'].values:
-                    selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_girl_jioid].iloc[0]
+                if selected_jioid in girls_profiles['JIOID'].values:
+                    selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
                     matches = filter_matches_for_girl_updated(selected_profile, boys_profiles, flexibility)
-                elif selected_boy_jioid in boys_profiles['JIOID'].values:
-                    selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_boy_jioid].iloc[0]
+                elif selected_jioid in boys_profiles['JIOID'].values:
+                    selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_jioid].iloc[0]
                     matches = filter_matches_for_boy_updated(selected_profile, girls_profiles, flexibility)
                 else:
                     st.error("Invalid JIOID entered.")
