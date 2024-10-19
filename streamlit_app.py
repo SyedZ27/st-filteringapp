@@ -161,19 +161,11 @@ def main():
             # Flexibility slider
             flexibility = st.slider("Set Flexibility for Matching Criteria", 0, 10, 0)
             
-            # Create dropdown with JIOID and Name for selection
-            girl_options = [f"{row['JIOID']} - {row['Name']}" for idx, row in girls_profiles.iterrows()]
-            boy_options = [f"{row['JIOID']} - {row['Name']}" for idx, row in boys_profiles.iterrows()]
-
-            # Dropdowns for selecting profiles
-            selected_girl = st.selectbox("Select a girl's profile to match:", girl_options)
-            selected_boy = st.selectbox("Select a boy's profile to match:", boy_options)
+            # Input fields for JIOID
+            selected_girl_jioid = st.text_input("Enter the girl's JIOID to match:")
+            selected_boy_jioid = st.text_input("Enter the boy's JIOID to match:")
 
             if st.button("Find Matches"):
-                # Extract JIOID from selected profile strings
-                selected_girl_jioid = selected_girl.split(" - ")[0]
-                selected_boy_jioid = selected_boy.split(" - ")[0]
-
                 if selected_girl_jioid in girls_profiles['JIOID'].values:
                     selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_girl_jioid].iloc[0]
                     matches = filter_matches_for_girl_updated(selected_profile, boys_profiles, flexibility)
@@ -181,7 +173,7 @@ def main():
                     selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_boy_jioid].iloc[0]
                     matches = filter_matches_for_boy_updated(selected_profile, girls_profiles, flexibility)
                 else:
-                    st.error("Invalid profile selection.")
+                    st.error("Invalid JIOID entered.")
                     return
 
                 if not matches.empty:
