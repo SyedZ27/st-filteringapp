@@ -48,9 +48,9 @@ def convert_height_to_cm(height_str):
 
     return None
 
-# Clean and preprocess data
-def preprocess_data(data):
-    """Cleans and preprocesses the raw data."""
+# Clean and preprocess data with updated column names
+def preprocess_data_updated(data):
+    """Cleans and preprocesses the raw data with updated column names."""
     if 'Date Of Birth' in data.columns:
         data['Date Of Birth'] = pd.to_datetime(data['Date Of Birth'], errors='coerce', dayfirst=True)
         data['Age'] = data['Date Of Birth'].apply(lambda x: calculate_age(x) if pd.notnull(x) else None)
@@ -58,15 +58,19 @@ def preprocess_data(data):
         st.warning("'Date Of Birth' column not found. Age calculation will be skipped.")
         data['Age'] = None
     
+    # Handle gender (previously Bride/Bridegroom)
+    if 'gender' in data.columns:
+        data['gender'] = data['gender'].str.lower().str.strip()
+    
     return data
 
-# Split profiles into girls and boys
-def split_profiles(profiles):
-    profiles['Bride/Bridegroom'] = profiles['Bride/Bridegroom'].str.lower().str.strip()
-    girls_profiles = profiles[profiles['Bride/Bridegroom'] == 'bride'].copy()
-    boys_profiles = profiles[profiles['Bride/Bridegroom'] == 'bridegroom'].copy()
+# Split profiles into girls and boys using updated gender column
+def split_profiles_updated(profiles):
+    profiles['gender'] = profiles['gender'].str.lower().str.strip()
+    girls_profiles = profiles[profiles['gender'] == 'female'].copy()
+    boys_profiles = profiles[profiles['gender'] == 'male'].copy()
 
-    # Apply height conversion
+    # Apply height conversion using 'Hight/FT'
     girls_profiles.loc[:, 'Hight/CM'] = girls_profiles['Hight/FT'].apply(convert_height_to_cm)
     boys_profiles.loc[:, 'Hight/CM'] = boys_profiles['Hight/FT'].apply(convert_height_to_cm)
 
@@ -86,18 +90,17 @@ def map_education_level(education):
         return education_hierarchy.get(education.lower(), 0)  # Return 0 if the education level is not found
     return 0  # Default for non-string types
 
-# Filter matches for a girl
-def filter_matches_for_girl(girl, boys_profiles):
-    """Filters boys profiles based on the given girl's criteria."""
+# Filter matches for a girl using 'Education_Standardized'
+def filter_matches_for_girl_updated(girl, boys_profiles):
+    """Filters boys profiles based on the girl's criteria."""
     girl_age = girl['Age'] if pd.notna(girl['Age']) else girl['Age']
     girl_age = int(girl_age)
 
-    # Create an effective age column for boys
     boys_profiles['Effective_boys_Age'] = boys_profiles['Age'].fillna(boys_profiles['Age']).fillna(0).astype(int)
 
-    # Convert education levels to numeric values
-    girl_education_level = map_education_level(girl['Education'])
-    boys_profiles['Education_Level'] = boys_profiles['Education'].apply(map_education_level)
+    # Use standardized education column
+    girl_education_level = map_education_level(girl['Education_Standardized'])
+    boys_profiles['Education_Level'] = boys_profiles['Education_Standardized'].apply(map_education_level)
 
     # Filter boys based on matching criteria
     matches = boys_profiles[
@@ -110,14 +113,14 @@ def filter_matches_for_girl(girl, boys_profiles):
         (boys_profiles['Education_Level'] == girl_education_level)
     ]
 
-    # Include additional columns in the displayed results
-    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
+    # Return relevant columns
+    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
-# Filter matches for a boy
-def filter_matches_for_boy(boy, girls_profiles):
-    """Filters girls profiles based on the given boy's criteria."""
-    boy_education_level = map_education_level(boy['Education'])
-    girls_profiles['Education_Level'] = girls_profiles['Education'].apply(map_education_level)
+# Filter matches for a boy using 'Education_Standardized'
+def filter_matches_for_boy_updated(boy, girls_profiles):
+    """Filters girls profiles based on the boy's criteria."""
+    boy_education_level = map_education_level(boy['Education_Standardized'])
+    girls_profiles['Education_Level'] = girls_profiles['Education_Standardized'].apply(map_education_level)
 
     matches = girls_profiles[
         (girls_profiles['Hight/CM'] < boy['Hight/CM']) &
@@ -128,8 +131,8 @@ def filter_matches_for_boy(boy, girls_profiles):
         (girls_profiles['Education_Level'] == boy_education_level)
     ]
 
-    # Include additional columns in the displayed results
-    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
+    # Return relevant columns
+    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
 # Save matches to a CSV file
 def save_matches_to_csv(selected_profile, matches, output_directory):
@@ -158,11 +161,11 @@ def main():
             st.write("Columns in the uploaded file:", data.columns.tolist())
             
             # Preprocess data
-            data = preprocess_data(data)
+            data = preprocess_data_updated(data)
             
-            # Define required columns (including 'Date Of Birth')
-            required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'Bride/Bridegroom', 
-                                'City', 'Age', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 
+            # Define required columns
+            required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'gender', 
+                                'City', 'Age', 'Education_Standardized', 'Salary-PA', 'Denomination', 'Occupation', 
                                 'joined', 'expire_date', 'Mobile', 'Date Of Birth']
             
             # Check for missing columns
@@ -177,7 +180,7 @@ def main():
             profiles = data[required_columns]
             profiles['JIOID'] = profiles['JIOID'].astype(str)
             
-            girls_profiles, boys_profiles = split_profiles(profiles)
+            girls_profiles, boys_profiles = split_profiles_updated(profiles)
             
             # Input for profile ID
             input_id = st.text_input("Enter the JIOID of the profile to match:")
@@ -185,10 +188,10 @@ def main():
             if st.button("Find Matches"):
                 if input_id in girls_profiles['JIOID'].values:
                     selected_profile = girls_profiles[girls_profiles['JIOID'] == input_id].iloc[0]
-                    matches = filter_matches_for_girl(selected_profile, boys_profiles)
+                    matches = filter_matches_for_girl_updated(selected_profile, boys_profiles)
                 elif input_id in boys_profiles['JIOID'].values:
                     selected_profile = boys_profiles[boys_profiles['JIOID'] == input_id].iloc[0]
-                    matches = filter_matches_for_boy(selected_profile, girls_profiles)
+                    matches = filter_matches_for_boy_updated(selected_profile, girls_profiles)
                 else:
                     st.error(f"No profile found with JIOID {input_id}.")
                     return
@@ -200,12 +203,11 @@ def main():
                     output_directory = "FINAL"
                     if not os.path.exists(output_directory):
                         os.makedirs(output_directory)
+
                     save_matches_to_csv(selected_profile, matches, output_directory)
-                    st.success(f"Matched profiles have been saved in the '{output_directory}' directory.")
-            
+                    st.success(f"Matches saved to {output_directory} directory.")
         except Exception as e:
-            st.error(f"An error occurred while processing the file: {str(e)}")
-            st.error("Please check your Excel file and ensure it's in the correct format.")
+            st.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
