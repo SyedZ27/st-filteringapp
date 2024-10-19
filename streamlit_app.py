@@ -20,7 +20,6 @@ def convert_height_to_cm(height_str):
     if pd.isnull(height_str):
         return None
 
-    # Mixed formats like "5ft 5in - 165"
     if 'ft' in height_str and '-' in height_str:
         try:
             feet_inches = height_str.split('-')[0].strip()
@@ -30,14 +29,12 @@ def convert_height_to_cm(height_str):
         except ValueError:
             return None
 
-    # Check if the height is already in centimeters (e.g., "165cm")
     if 'cm' in height_str:
         try:
             return int(height_str.split('cm')[0].strip())
         except ValueError:
             return None
 
-    # Handle feet and inches only (e.g., "5ft 5in")
     if 'ft' in height_str:
         try:
             feet, inches = height_str.split('ft ')
@@ -58,7 +55,6 @@ def preprocess_data_updated(data):
         st.warning("'Date Of Birth' column not found. Age calculation will be skipped.")
         data['Age'] = None
     
-    # Handle gender (previously Bride/Bridegroom)
     if 'gender' in data.columns:
         data['gender'] = data['gender'].str.lower().str.strip()
     
@@ -70,15 +66,13 @@ def split_profiles_updated(profiles):
     girls_profiles = profiles[profiles['gender'] == 'female'].copy()
     boys_profiles = profiles[profiles['gender'] == 'male'].copy()
 
-    # Apply height conversion using 'Hight/FT'
     girls_profiles.loc[:, 'Hight/CM'] = girls_profiles['Hight/FT'].apply(convert_height_to_cm)
     boys_profiles.loc[:, 'Hight/CM'] = boys_profiles['Hight/FT'].apply(convert_height_to_cm)
 
     return girls_profiles, boys_profiles
 
-# Define a function to map education levels to numeric values
+# Map education levels to numeric values for comparison
 def map_education_level(education):
-    """Maps education levels to numeric values for comparison."""
     education_hierarchy = {
         'highschool': 1,
         'bachelors': 2,
@@ -87,92 +81,49 @@ def map_education_level(education):
         'phd': 5
     }
     if isinstance(education, str):
-        return education_hierarchy.get(education.lower(), 0)  # Return 0 if the education level is not found
-    return 0  # Default for non-string types
+        return education_hierarchy.get(education.lower(), 0)
+    return 0
 
-# Flexibility-based matching for girls
-def filter_matches_with_flexibility(girl, boys_profiles, flexibility=2):
-    """Filters boys profiles based on the girl's criteria with flexibility for unmatched conditions."""
-    girl_age = girl['Age'] if pd.notna(girl['Age']) else girl['Age']
-    girl_age = int(girl_age)
-    
-    boys_profiles['Effective_boys_Age'] = boys_profiles['Age'].fillna(boys_profiles['Age']).fillna(0).astype(int)
+# Filter matches for a girl using the flexibility slider
+def filter_matches_for_girl_updated(girl, boys_profiles, flexibility):
+    girl_age = int(girl['Age']) if pd.notna(girl['Age']) else None
+    boys_profiles['Effective_boys_Age'] = boys_profiles['Age'].fillna(0).astype(int)
 
-    # Use standardized education column
     girl_education_level = map_education_level(girl['Education_Standardized'])
     boys_profiles['Education_Level'] = boys_profiles['Education_Standardized'].apply(map_education_level)
 
-    # Flexibility logic: keep track of how many conditions are violated
-    def condition_check(row):
-        conditions_met = 0
-        
-        # Conditions
-        if row['Hight/CM'] > girl['Hight/CM']:
-            conditions_met += 1
-        if row['Marital Status'] == girl['Marital Status']:
-            conditions_met += 1
-        if girl_age <= row['Effective_boys_Age'] <= girl_age + 5:
-            conditions_met += 1
-        if row['Denomination'] == girl['Denomination']:
-            conditions_met += 1
-        if row['City'] == girl['City']:
-            conditions_met += 1
-        if row['Education_Level'] == girl_education_level:
-            conditions_met += 1
+    # Filter based on flexibility
+    matches = boys_profiles[
+        ((boys_profiles['Hight/CM'] > girl['Hight/CM'] - flexibility) | pd.isnull(girl['Hight/CM'])) &
+        ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
+        ((boys_profiles['Effective_boys_Age'] >= girl_age) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &
+        ((boys_profiles['Denomination'] == girl['Denomination']) | pd.isnull(girl['Denomination'])) &
+        ((boys_profiles['City'] == girl['City']) | pd.isnull(girl['City'])) &
+        (boys_profiles['Education_Level'] >= girl_education_level - flexibility)
+    ]
 
-        # Return True if the number of failed conditions is within flexibility allowance
-        return conditions_met >= (6 - flexibility)
-
-    # Filter profiles based on the flexible condition-checking logic
-    matches = boys_profiles[boys_profiles.apply(condition_check, axis=1)]
-
-    # Return relevant columns
     return matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
-# Flexibility-based matching for boys
-def filter_matches_for_boy_with_flexibility(boy, girls_profiles, flexibility=2):
-    """Filters girls profiles based on the boy's criteria with flexibility for unmatched conditions."""
-    boy_age = boy['Age'] if pd.notna(boy['Age']) else boy['Age']
-    boy_age = int(boy_age)
-    
-    girls_profiles['Effective_girls_Age'] = girls_profiles['Age'].fillna(girls_profiles['Age']).fillna(0).astype(int)
-
-    # Use standardized education column
+# Filter matches for a boy using the flexibility slider
+def filter_matches_for_boy_updated(boy, girls_profiles, flexibility):
     boy_education_level = map_education_level(boy['Education_Standardized'])
     girls_profiles['Education_Level'] = girls_profiles['Education_Standardized'].apply(map_education_level)
 
-    # Flexibility logic: keep track of how many conditions are violated
-    def condition_check(row):
-        conditions_met = 0
-        
-        # Conditions
-        if row['Hight/CM'] < boy['Hight/CM']:
-            conditions_met += 1
-        if row['Marital Status'] == boy['Marital Status']:
-            conditions_met += 1
-        if row['Effective_girls_Age'] < boy_age:
-            conditions_met += 1
-        if row['Denomination'] == boy['Denomination']:
-            conditions_met += 1
-        if row['City'] == boy['City']:
-            conditions_met += 1
-        if row['Education_Level'] == boy_education_level:
-            conditions_met += 1
+    # Filter based on flexibility
+    matches = girls_profiles[
+        ((girls_profiles['Hight/CM'] < boy['Hight/CM'] + flexibility) | pd.isnull(boy['Hight/CM'])) &
+        ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
+        ((girls_profiles['Age'] < boy['Age']) | pd.isnull(boy['Age'])) &
+        ((girls_profiles['Denomination'] == boy['Denomination']) | pd.isnull(boy['Denomination'])) &
+        ((girls_profiles['City'] == boy['City']) | pd.isnull(boy['City'])) &
+        (girls_profiles['Education_Level'] >= boy_education_level - flexibility)
+    ]
 
-        # Return True if the number of failed conditions is within flexibility allowance
-        return conditions_met >= (6 - flexibility)
-
-    # Filter profiles based on the flexible condition-checking logic
-    matches = girls_profiles[girls_profiles.apply(condition_check, axis=1)]
-
-    # Return relevant columns
     return matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
 # Save matches to a CSV file
 def save_matches_to_csv(selected_profile, matches, output_directory):
-    """Saves the matched profiles to a CSV file."""
     def sanitize_filename(name):
-        """Sanitizes the name for use in a file name.""" 
         if isinstance(name, str):
             return name.replace(" ", "_").replace(".", "_").replace("/", "_").replace("\\", "_")
         return "unknown"
@@ -181,65 +132,68 @@ def save_matches_to_csv(selected_profile, matches, output_directory):
     file_path = os.path.join(output_directory, f"matches_for_{sanitized_name}.csv")
     matches.to_csv(file_path, index=False)
 
-# Main function to run the profile matching process in Streamlit
+# Main function
 def main():
     st.title("Profile Matching Application")
-    
+
     file_path = st.file_uploader("Upload an Excel file", type=["xlsx"])
-    
+
     if file_path is not None:
         try:
             data = load_data(file_path)
-            
-            # Preprocess data
             data = preprocess_data_updated(data)
-            
-            # Define required columns
+
             required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'gender', 
                                 'City', 'Age', 'Education_Standardized', 'Salary-PA', 'Denomination', 'Occupation', 
                                 'joined', 'expire_date', 'Mobile', 'Date Of Birth']
-            
-            # Check for missing columns
+
             missing_columns = [col for col in required_columns if col not in data.columns]
-            
+
             if missing_columns:
                 st.error(f"The following required columns are missing: {', '.join(missing_columns)}")
                 return
+
+            profiles = data[required_columns]
+            profiles['JIOID'] = profiles['JIOID'].astype(str)
             
-            girls_profiles, boys_profiles = split_profiles_updated(data)
+            girls_profiles, boys_profiles = split_profiles_updated(profiles)
             
-            st.write(f"Loaded {len(girls_profiles)} girl profiles and {len(boys_profiles)} boy profiles.")
+            # Flexibility slider
+            flexibility = st.slider("Set Flexibility for Matching Criteria", 0, 10, 0)
             
-            profile_type = st.radio("Select profile type to match", ["Girl", "Boy"])
-            
-            if profile_type == "Girl":
-                selected_girl_index = st.selectbox("Select a girl's profile to match", range(len(girls_profiles)))
-                selected_girl = girls_profiles.iloc[selected_girl_index]
-                flexibility = st.slider("Set flexibility level for matching", min_value=0, max_value=5, value=2)
-                matches = filter_matches_with_flexibility(selected_girl, boys_profiles, flexibility)
-                st.write(f"Found {len(matches)} matches for {selected_girl['Name']}")
-                st.write(matches)
-                
-                output_directory = st.text_input("Enter the output directory to save matches")
-                if st.button("Save matches to CSV") and output_directory:
-                    save_matches_to_csv(selected_girl, matches, output_directory)
-                    st.success("Matches saved successfully.")
-            
-            elif profile_type == "Boy":
-                selected_boy_index = st.selectbox("Select a boy's profile to match", range(len(boys_profiles)))
-                selected_boy = boys_profiles.iloc[selected_boy_index]
-                flexibility = st.slider("Set flexibility level for matching", min_value=0, max_value=5, value=2)
-                matches = filter_matches_for_boy_with_flexibility(selected_boy, girls_profiles, flexibility)
-                st.write(f"Found {len(matches)} matches for {selected_boy['Name']}")
-                st.write(matches)
-                
-                output_directory = st.text_input("Enter the output directory to save matches")
-                if st.button("Save matches to CSV") and output_directory:
-                    save_matches_to_csv(selected_boy, matches, output_directory)
-                    st.success("Matches saved successfully.")
-        
+            # Create dropdown with JIOID and Name for selection
+            girl_options = [f"{row['JIOID']} - {row['Name']}" for idx, row in girls_profiles.iterrows()]
+            boy_options = [f"{row['JIOID']} - {row['Name']}" for idx, row in boys_profiles.iterrows()]
+
+            # Dropdowns for selecting profiles
+            selected_girl = st.selectbox("Select a girl's profile to match:", girl_options)
+            selected_boy = st.selectbox("Select a boy's profile to match:", boy_options)
+
+            if st.button("Find Matches"):
+                # Extract JIOID from selected profile strings
+                selected_girl_jioid = selected_girl.split(" - ")[0]
+                selected_boy_jioid = selected_boy.split(" - ")[0]
+
+                if selected_girl_jioid in girls_profiles['JIOID'].values:
+                    selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_girl_jioid].iloc[0]
+                    matches = filter_matches_for_girl_updated(selected_profile, boys_profiles, flexibility)
+                elif selected_boy_jioid in boys_profiles['JIOID'].values:
+                    selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_boy_jioid].iloc[0]
+                    matches = filter_matches_for_boy_updated(selected_profile, girls_profiles, flexibility)
+                else:
+                    st.error("Invalid profile selection.")
+                    return
+
+                if not matches.empty:
+                    st.write(matches)
+                    output_directory = st.text_input("Enter the directory to save matches CSV:")
+                    if output_directory:
+                        save_matches_to_csv(selected_profile, matches, output_directory)
+                        st.success(f"Matches saved to {output_directory}")
+                else:
+                    st.warning("No matches found.")
         except Exception as e:
-            st.error(f"Error loading the file: {e}")
+            st.error(f"Error loading or processing data: {str(e)}")
 
 if __name__ == "__main__":
     main()
