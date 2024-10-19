@@ -53,10 +53,10 @@ def preprocess_data(data):
     """Cleans and preprocesses the raw data."""
     if 'Date Of Birth' in data.columns:
         data['Date Of Birth'] = pd.to_datetime(data['Date Of Birth'], errors='coerce', dayfirst=True)
-        data['RealAge'] = data['Date Of Birth'].apply(lambda x: calculate_age(x) if pd.notnull(x) else None)
+        data['Age'] = data['Date Of Birth'].apply(lambda x: calculate_age(x) if pd.notnull(x) else None)
     else:
         st.warning("'Date Of Birth' column not found. Age calculation will be skipped.")
-        data['RealAge'] = None
+        data['Age'] = None
     
     return data
 
@@ -67,8 +67,8 @@ def split_profiles(profiles):
     boys_profiles = profiles[profiles['Bride/Bridegroom'] == 'bridegroom'].copy()
 
     # Apply height conversion
-    girls_profiles.loc[:, 'Height_cm'] = girls_profiles['Hight/FT'].apply(convert_height_to_cm)
-    boys_profiles.loc[:, 'Height_cm'] = boys_profiles['Hight/FT'].apply(convert_height_to_cm)
+    girls_profiles.loc[:, 'Hight/CM'] = girls_profiles['Hight/FT'].apply(convert_height_to_cm)
+    boys_profiles.loc[:, 'Hight/CM'] = boys_profiles['Hight/FT'].apply(convert_height_to_cm)
 
     return girls_profiles, boys_profiles
 
@@ -89,11 +89,11 @@ def map_education_level(education):
 # Filter matches for a girl
 def filter_matches_for_girl(girl, boys_profiles):
     """Filters boys profiles based on the given girl's criteria."""
-    girl_age = girl['RealAge'] if pd.notna(girl['RealAge']) else girl['Age']
+    girl_age = girl['Age'] if pd.notna(girl['Age']) else girl['Age']
     girl_age = int(girl_age)
 
     # Create an effective age column for boys
-    boys_profiles['Effective_boys_Age'] = boys_profiles['RealAge'].fillna(boys_profiles['Age']).fillna(0).astype(int)
+    boys_profiles['Effective_boys_Age'] = boys_profiles['Age'].fillna(boys_profiles['Age']).fillna(0).astype(int)
 
     # Convert education levels to numeric values
     girl_education_level = map_education_level(girl['Education'])
@@ -101,7 +101,7 @@ def filter_matches_for_girl(girl, boys_profiles):
 
     # Filter boys based on matching criteria
     matches = boys_profiles[
-        (boys_profiles['Height_cm'] > girl['Height_cm']) &
+        (boys_profiles['Hight/CM'] > girl['Hight/CM']) &
         (boys_profiles['Marital Status'] == girl['Marital Status']) &
         (boys_profiles['Effective_boys_Age'] >= girl_age) &
         (boys_profiles['Effective_boys_Age'] <= girl_age + 5) &
@@ -111,7 +111,7 @@ def filter_matches_for_girl(girl, boys_profiles):
     ]
 
     # Include additional columns in the displayed results
-    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Height_cm', 'RealAge', 'City', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
+    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
 # Filter matches for a boy
 def filter_matches_for_boy(boy, girls_profiles):
@@ -120,16 +120,16 @@ def filter_matches_for_boy(boy, girls_profiles):
     girls_profiles['Education_Level'] = girls_profiles['Education'].apply(map_education_level)
 
     matches = girls_profiles[
-        (girls_profiles['Height_cm'] < boy['Height_cm']) &
+        (girls_profiles['Hight/CM'] < boy['Hight/CM']) &
         (girls_profiles['Marital Status'] == boy['Marital Status']) &
-        (girls_profiles['RealAge'] < boy['RealAge']) &
+        (girls_profiles['Age'] < boy['Age']) &
         (girls_profiles['Cast'] == boy['Cast']) &
         (girls_profiles['City'] == boy['City']) &
         (girls_profiles['Education_Level'] == boy_education_level)
     ]
 
     # Include additional columns in the displayed results
-    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Height_cm', 'RealAge', 'City', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
+    return matches[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
 # Save matches to a CSV file
 def save_matches_to_csv(selected_profile, matches, output_directory):
