@@ -158,9 +158,15 @@ def main():
             
             girls_profiles, boys_profiles = split_profiles_updated(profiles)
             
-            # Flexibility slider
-            flexibility = st.slider("Set Flexibility for Matching Criteria", 0, 10, 0)
-            
+            # Flexibility selection
+            flexibility_option = st.selectbox(
+                "Select Flexibility for Matching Criteria:",
+                options=["Low Flexibility", "Medium Flexibility", "High Flexibility"]
+            )
+            # Set the flexibility value based on selection
+            flexibility_values = {"Low Flexibility": 0, "Medium Flexibility": 3, "High Flexibility": 5}
+            flexibility = flexibility_values[flexibility_option]
+
             # Input field for JIOID
             selected_jioid = st.text_input("Enter JIOID of the user to match profiles:")
 
