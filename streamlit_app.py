@@ -69,7 +69,7 @@ def preprocess_data_updated(data):
 
 # Split profiles into girls and boys using updated gender column
 def split_profiles_updated(profiles):
-    profiles['gender'] = profiles['gender'].str.lower().str.strip()
+    profiles.loc[:, 'gender'] = profiles['gender'].str.lower().str.strip()
     girls_profiles = profiles[profiles['gender'] == 'female'].copy()
     boys_profiles = profiles[profiles['gender'] == 'male'].copy()
 
@@ -165,7 +165,8 @@ def main():
                 return
             
             profiles = data[required_columns]
-            profiles['JIOID'] = profiles['JIOID'].astype(str)
+            profiles.loc[:, 'JIOID'] = profiles['JIOID'].astype(str)
+
             
             girls_profiles, boys_profiles = split_profiles_updated(profiles)
             
