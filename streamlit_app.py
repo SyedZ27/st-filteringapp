@@ -149,9 +149,26 @@ def main():
     if file_path is not None:
         # Load and preprocess data
         data = load_data(file_path)
+
+        # Debugging: Display actual column names
+        st.write("Columns in the uploaded file:", data.columns.tolist())
+
+        # Adjust column names: Remove leading/trailing spaces, and make lowercase
+        data.columns = data.columns.str.strip()
+        data.columns = data.columns.str.lower()
+
+        # Preprocess data
         data = preprocess_data(data)
-        profiles = data[['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'RealAge', 'Bride/Bridegroom', 'City', 'Age', 'Education', 'Salary-PA', 'Denomination', 'Occupation', 'joined', 'expire_date', 'Mobile']]
-        profiles['JIOID'] = profiles['JIOID'].astype(str)
+
+        # Try accessing columns and handle KeyError
+        try:
+            profiles = data[['jioid', 'name', 'cast', 'marital status', 'hight/ft', 'realage', 'bride/bridegroom', 
+                             'city', 'age', 'education', 'salary-pa', 'denomination', 'occupation', 'joined', 'expire_date', 'mobile']]
+        except KeyError as e:
+            st.error(f"KeyError: The following columns are missing: {e}")
+            return
+
+        profiles['jioid'] = profiles['jioid'].astype(str)
 
         girls_profiles, boys_profiles = split_profiles(profiles)
 
@@ -159,11 +176,11 @@ def main():
         input_id = st.text_input("Enter the JIOID of the profile to match:")
 
         if st.button("Find Matches"):
-            if input_id in girls_profiles['JIOID'].values:
-                selected_profile = girls_profiles[girls_profiles['JIOID'] == input_id].iloc[0]
+            if input_id in girls_profiles['jioid'].values:
+                selected_profile = girls_profiles[girls_profiles['jioid'] == input_id].iloc[0]
                 matches = filter_matches_for_girl(selected_profile, boys_profiles)
-            elif input_id in boys_profiles['JIOID'].values:
-                selected_profile = boys_profiles[boys_profiles['JIOID'] == input_id].iloc[0]
+            elif input_id in boys_profiles['jioid'].values:
+                selected_profile = boys_profiles[boys_profiles['jioid'] == input_id].iloc[0]
                 matches = filter_matches_for_boy(selected_profile, girls_profiles)
             else:
                 st.error(f"No profile found with JIOID {input_id}.")
