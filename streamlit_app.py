@@ -93,7 +93,6 @@ def map_education_level(education):
         return education_hierarchy.get(education.lower(), 0)
     return 0
 
-# Filter matches for a boy with corrected age range and exact match conditions
 def filter_matches_for_boy_updated(boy, girls_profiles):
     boy_age = int(boy['Age']) if pd.notna(boy['Age']) else None
     girls_profiles['Effective_girls_Age'] = girls_profiles['Age'].fillna(0).astype(int)
@@ -105,9 +104,8 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
     matches = girls_profiles[
         ((girls_profiles['Hight/CM'] < boy['Hight/CM']) | pd.isnull(boy['Hight/CM'])) &
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
-        ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &  # Match girls within boy's age range (up to 5 years younger)
-        ((girls_profiles['Denomination'] == boy['Denomination']) | pd.isnull(boy['Denomination'])) &
-        (girls_profiles['Education_Level'] <= boy_education_level)  # Exact match for education level
+        ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
+        (girls_profiles['Education_Level'] <= boy_education_level)  # Match based on education level
     ]
 
     # Split matches into same city and different city for prioritized output
@@ -117,9 +115,10 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
     # Concatenate same city profiles first, followed by different city profiles
     prioritized_matches = pd.concat([same_city_matches, different_city_matches])
 
+    # Display denomination in the output but not filter by it
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
-# Filter matches for a girl with corrected age conditions
+
 def filter_matches_for_girl_updated(girl, boys_profiles):
     girl_age = int(girl['Age']) if pd.notna(girl['Age']) else None
     boys_profiles['Effective_boys_Age'] = boys_profiles['Age'].fillna(0).astype(int)
@@ -131,9 +130,8 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
     matches = boys_profiles[
         ((boys_profiles['Hight/CM'] > girl['Hight/CM']) | pd.isnull(girl['Hight/CM'])) &
         ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
-        ((boys_profiles['Effective_boys_Age'] >= girl_age + 1) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &  # Match boys within the girl's age range (up to 5 years older)
-        ((boys_profiles['Denomination'] == girl['Denomination']) | pd.isnull(girl['Denomination'])) &
-        (boys_profiles['Education_Level'] >= girl_education_level)  # Exact match for education level
+        ((boys_profiles['Effective_boys_Age'] >= girl_age + 1) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &
+        (boys_profiles['Education_Level'] >= girl_education_level)  # Match based on education level
     ]
 
     # Split matches into same city and different city for prioritized output
@@ -143,6 +141,7 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
     # Concatenate same city profiles first, followed by different city profiles
     prioritized_matches = pd.concat([same_city_matches, different_city_matches])
 
+    # Display denomination in the output but not filter by it
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
 # Save matches to a CSV file
