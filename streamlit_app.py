@@ -99,13 +99,19 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
 
     boy_education_level = map_education_level(boy['Education_Standardized'])
     girls_profiles['Education_Level'] = girls_profiles['Education_Standardized'].apply(map_education_level)
+    
+    # Clean up any extra spaces in the Salary-PA_Standardized column
+    girls_profiles['Salary-PA_Standardized'] = girls_profiles['Salary-PA_Standardized'].apply(lambda x: str(x).strip() if pd.notna(x) else x)
+    boy_salary = float(str(boy['Salary-PA_Standardized']).strip()) if pd.notna(boy['Salary-PA_Standardized']) else None
+    girls_profiles['Salary-PA_Standardized'] = girls_profiles['Salary-PA_Standardized'].astype(float, errors='ignore')
 
-    # Apply the correct age condition (girls' age should be within 5 years younger)
+    # Apply the correct age condition (girls' age should be within 5 years younger) and salary comparison
     matches = girls_profiles[
         ((girls_profiles['Hight/CM'] < boy['Hight/CM']) | pd.isnull(boy['Hight/CM'])) &
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
         ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
-        (girls_profiles['Education_Level'] <= boy_education_level)  # Match based on education level
+        (girls_profiles['Education_Level'] <= boy_education_level) &
+        (girls_profiles['Salary-PA_Standardized'] < boy_salary)  # Salary logic for boys
     ]
 
     # Split matches into same city and different city for prioritized output
@@ -118,20 +124,25 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
     # Display denomination in the output but not filter by it
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
-
 def filter_matches_for_girl_updated(girl, boys_profiles):
     girl_age = int(girl['Age']) if pd.notna(girl['Age']) else None
     boys_profiles['Effective_boys_Age'] = boys_profiles['Age'].fillna(0).astype(int)
 
     girl_education_level = map_education_level(girl['Education_Standardized'])
     boys_profiles['Education_Level'] = boys_profiles['Education_Standardized'].apply(map_education_level)
+    
+    # Clean up any extra spaces in the Salary-PA_Standardized column
+    boys_profiles['Salary-PA_Standardized'] = boys_profiles['Salary-PA_Standardized'].apply(lambda x: str(x).strip() if pd.notna(x) else x)
+    girl_salary = float(str(girl['Salary-PA_Standardized']).strip()) if pd.notna(girl['Salary-PA_Standardized']) else None
+    boys_profiles['Salary-PA_Standardized'] = boys_profiles['Salary-PA_Standardized'].astype(float, errors='ignore')
 
-    # Apply the correct age condition (boys' age should be up to 5 years older)
+    # Apply the correct age condition (boys' age should be up to 5 years older) and salary comparison
     matches = boys_profiles[
         ((boys_profiles['Hight/CM'] > girl['Hight/CM']) | pd.isnull(girl['Hight/CM'])) &
         ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
         ((boys_profiles['Effective_boys_Age'] >= girl_age + 1) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &
-        (boys_profiles['Education_Level'] >= girl_education_level)  # Match based on education level
+        (boys_profiles['Education_Level'] >= girl_education_level) &
+        (boys_profiles['Salary-PA_Standardized'] > girl_salary)  # Salary logic for girls
     ]
 
     # Split matches into same city and different city for prioritized output
@@ -143,6 +154,8 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
 
     # Display denomination in the output but not filter by it
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
+
+
 
 # Save matches to a CSV file
 def save_matches_to_csv(selected_profile, matches, output_directory):
