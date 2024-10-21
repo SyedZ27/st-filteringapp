@@ -89,7 +89,7 @@ def map_education_level(education):
         return education_hierarchy.get(education.lower(), 0)
     return 0
 
-# Filter matches for a boy with updated age range and exact match conditions
+# Filter matches for a boy with updated age range and exact match conditions (excluding city condition)
 def filter_matches_for_boy_updated(boy, girls_profiles):
     boy_age = int(boy['Age']) if pd.notna(boy['Age']) else None
     girls_profiles['Effective_girls_Age'] = girls_profiles['Age'].fillna(0).astype(int)
@@ -103,7 +103,6 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
         ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &  # Match girls within boy's age range (up to 5 years younger)
         ((girls_profiles['Denomination'] == boy['Denomination']) | pd.isnull(boy['Denomination'])) &
-        ((girls_profiles['City'] == boy['City']) | pd.isnull(boy['City'])) &  # City matching condition
         (girls_profiles['Education_Level'] >= boy_education_level)  # Exact match for education level
     ]
 
@@ -116,7 +115,7 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
 
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
-# Filter matches for a girl with updated conditions
+# Filter matches for a girl with updated conditions (excluding city condition)
 def filter_matches_for_girl_updated(girl, boys_profiles):
     girl_age = int(girl['Age']) if pd.notna(girl['Age']) else None
     boys_profiles['Effective_boys_Age'] = boys_profiles['Age'].fillna(0).astype(int)
@@ -130,7 +129,6 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
         ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
         ((boys_profiles['Effective_boys_Age'] >= girl_age) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &  # Match boys within age range
         ((boys_profiles['Denomination'] == girl['Denomination']) | pd.isnull(girl['Denomination'])) &
-        ((boys_profiles['City'] == girl['City']) | pd.isnull(girl['City'])) &  # City matching condition
         (boys_profiles['Education_Level'] >= girl_education_level)  # Exact match for education level
     ]
 
