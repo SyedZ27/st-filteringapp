@@ -142,27 +142,14 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
 
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
-# Save matches to a CSV file with the desired naming convention
+# Save matches to a CSV file
 def save_matches_to_csv(selected_profile, matches, output_directory):
     def sanitize_filename(name):
         return "".join(c for c in name if c.isalnum() or c in (' ', '_')).rstrip()
 
-    # Get the sanitized name and JIOID from the selected profile
     sanitized_name = sanitize_filename(str(selected_profile['Name']))
-    jioid = str(selected_profile['JIOID'])
-
-    # Get the current date in DD-MM-YYYY format
-    current_date = datetime.now().strftime("%d-%m-%Y")
-
-    # Combine the name, JIOID, and date to create the filename
-    file_name = f"{sanitized_name}_{jioid}_{current_date}.csv"
-    
-    # Create the full file path
-    file_path = os.path.join(output_directory, file_name)
-    
-    # Save the matches DataFrame to the CSV file
+    file_path = os.path.join(output_directory, f"matches_for_{sanitized_name}.csv")
     matches.to_csv(file_path, index=False)
-    
     return file_path
 
 # Main function
@@ -181,36 +168,62 @@ def main():
                                 'joined', 'expire_date', 'Mobile', 'Date Of Birth']
 
             missing_columns = [col for col in required_columns if col not in data.columns]
+
             if missing_columns:
-                st.warning(f"Missing columns in the uploaded file: {', '.join(missing_columns)}")
-            else:
-                girls_profiles, boys_profiles = split_profiles_updated(data)
+                st.error(f"The following required columns are missing: {', '.join(missing_columns)}")
+                return
 
-                selected_profile_type = st.selectbox("Select profile type", ["Girls", "Boys"])
+            profiles = data[required_columns]
+            profiles['JIOID'] = profiles['JIOID'].astype(str)
+            
+            girls_profiles, boys_profiles = split_profiles_updated(profiles)
+            
+            # Input field for JIOID
+            selected_jioid = st.text_input("Enter JIOID of the user to match profiles:")
 
-                if selected_profile_type == "Boys":
-                    selected_boy = st.selectbox("Select a boy profile", boys_profiles['Name'].tolist())
-                    boy_profile = boys_profiles[boys_profiles['Name'] == selected_boy].iloc[0]
-                    matches = filter_matches_for_boy_updated(boy_profile, girls_profiles)
-                else:
-                    selected_girl = st.selectbox("Select a girl profile", girls_profiles['Name'].tolist())
-                    girl_profile = girls_profiles[girls_profiles['Name'] == selected_girl].iloc[0]
-                    matches = filter_matches_for_girl_updated(girl_profile, boys_profiles)
+            if st.button("Find Matches"):
+                if not selected_jioid:
+                    st.error("Please enter a JIOID.")
+                    return
 
-                if not matches.empty:
-                    st.write(f"Matches found for {selected_boy if selected_profile_type == 'Boys' else selected_girl}:")
+                if selected_jioid in boys_profiles['JIOID'].values:
+                    selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_jioid].iloc[0]
+                    matches = filter_matches_for_boy_updated(selected_profile, girls_profiles)
+
+                    # Display the number of matches for the boy
+                    num_matches = len(matches)
+                    st.write(f"{num_matches} profiles matched for boy {selected_profile['Name']}:")
                     st.dataframe(matches)
 
-                    # Save button
-                    if st.button("Download Matches as CSV"):
-                        output_directory = "."  # Specify your desired output directory
-                        file_path = save_matches_to_csv(boy_profile if selected_profile_type == "Boys" else girl_profile, matches, output_directory)
-                        st.success(f"File saved: {file_path}")
+                    output_directory = st.text_input("Enter the output directory for saving the matches:")
+                    if st.button("Save Matches"):
+                        if not output_directory:
+                            st.error("Please enter a valid output directory.")
+                        else:
+                            file_path = save_matches_to_csv(selected_profile, matches, output_directory)
+                            st.success(f"Matches saved to {file_path}")
+
+                elif selected_jioid in girls_profiles['JIOID'].values:
+                    selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
+                    matches = filter_matches_for_girl_updated(selected_profile, boys_profiles)
+
+                    # Display the number of matches for the girl
+                    num_matches = len(matches)
+                    st.write(f"{num_matches} profiles matched for girl {selected_profile['Name']}:")
+                    st.dataframe(matches)
+
+                    output_directory = st.text_input("Enter the output directory for saving the matches:")
+                    if st.button("Save Matches"):
+                        if not output_directory:
+                            st.error("Please enter a valid output directory.")
+                        else:
+                            file_path = save_matches_to_csv(selected_profile, matches, output_directory)
+                            st.success(f"Matches saved to {file_path}")
+
                 else:
-                    st.warning("No matches found.")
-
+                    st.error("JIOID not found in the profiles.")
         except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
+            st.error(f"An error occurred while processing the file: {e}")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
