@@ -80,19 +80,19 @@ def split_profiles_updated(profiles):
 # Map education levels to numeric values for comparison
 def map_education_level(education):
     education_hierarchy = {
-    'secondary education': 0,
-    'diploma': 1,
-    'bachelors': 2,
-    'masters': 3,
-    'law': 4,        # Professional degree, typically lower than a PhD
-    'doctorate': 5,  # This can include PhD
-    'phd': 6,        # Highest academic degree
-    'doctor': 7      # Medical Doctor (MD), as a professional degree
+        'secondary education': 0,
+        'diploma': 1,
+        'bachelors': 2,
+        'masters': 3,
+        'law': 4,
+        'doctorate': 5,
+        'phd': 6,
+        'doctor': 7
     }
     if isinstance(education, str):
-        return education_hierarchy.get(education.lower(), 0)
+        return education_hierarchy.get(education.lower().strip(), 0)  # Convert to lowercase
     return 0
-
+    
 def filter_matches_for_boy_updated(boy, girls_profiles):
     boy_age = int(boy['Age']) if pd.notna(boy['Age']) else None
     girls_profiles['Effective_girls_Age'] = girls_profiles['Age'].fillna(0).astype(int)
