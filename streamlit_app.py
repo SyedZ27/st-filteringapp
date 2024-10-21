@@ -80,14 +80,14 @@ def split_profiles_updated(profiles):
 # Map education levels to numeric values for comparison
 def map_education_level(education):
     education_hierarchy = {
-        'secondary education': 0,
-        'diploma': 1,
-        'bachelors':2,
-        'masters': 3,
-        'doctor': 4,
-        'phd': 5,
-        'law': 6,
-        'doctorate': 7
+    'secondary education': 0,
+    'diploma': 1,
+    'bachelors': 2,
+    'masters': 3,
+    'law': 4,        # Professional degree, typically lower than a PhD
+    'doctorate': 5,  # This can include PhD
+    'phd': 6,        # Highest academic degree
+    'doctor': 7      # Medical Doctor (MD), as a professional degree
     }
     if isinstance(education, str):
         return education_hierarchy.get(education.lower(), 0)
