@@ -80,11 +80,14 @@ def split_profiles_updated(profiles):
 # Map education levels to numeric values for comparison
 def map_education_level(education):
     education_hierarchy = {
-        'highschool': 1,
-        'bachelors': 2,
-        'Doctor': 3,
-        'masters': 4,
-        'phd': 5
+        'secondary education': 0,
+        'diploma': 1,
+        'bachelors':2,
+        'masters': 3,
+        'doctor': 4,
+        'phd': 5,
+        'law': 6,
+        'doctorate': 7
     }
     if isinstance(education, str):
         return education_hierarchy.get(education.lower(), 0)
@@ -104,7 +107,7 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
         ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &  # Match girls within boy's age range (up to 5 years younger)
         ((girls_profiles['Denomination'] == boy['Denomination']) | pd.isnull(boy['Denomination'])) &
-        (girls_profiles['Education_Level'] >= boy_education_level)  # Exact match for education level
+        (girls_profiles['Education_Level'] <= boy_education_level)  # Exact match for education level
     ]
 
     # Split matches into same city and different city for prioritized output
