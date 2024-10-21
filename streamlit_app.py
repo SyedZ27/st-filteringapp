@@ -187,29 +187,41 @@ def main():
                     st.error("Please enter a JIOID.")
                     return
 
-                if selected_jioid in girls_profiles['JIOID'].values:
-                    selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
-                    matches = filter_matches_for_girl_updated(selected_profile, boys_profiles)
-                elif selected_jioid in boys_profiles['JIOID'].values:
+                if selected_jioid in boys_profiles['JIOID'].values:
                     selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_jioid].iloc[0]
                     matches = filter_matches_for_boy_updated(selected_profile, girls_profiles)
-                else:
-                    st.error("Invalid JIOID entered.")
-                    return
 
-                if not matches.empty:
-                    st.write(matches)
-                    output_directory = st.text_input("Enter the directory to save matches CSV:")
-                    if output_directory:
-                        try:
+                    st.write(f"Matches for boy {selected_profile['Name']}:")
+                    st.dataframe(matches)
+
+                    output_directory = st.text_input("Enter the output directory for saving the matches:")
+                    if st.button("Save Matches"):
+                        if not output_directory:
+                            st.error("Please enter a valid output directory.")
+                        else:
                             file_path = save_matches_to_csv(selected_profile, matches, output_directory)
                             st.success(f"Matches saved to {file_path}")
-                        except Exception as e:
-                            st.error(f"Error saving matches: {str(e)}")
+
+                elif selected_jioid in girls_profiles['JIOID'].values:
+                    selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
+                    matches = filter_matches_for_girl_updated(selected_profile, boys_profiles)
+
+                    st.write(f"Matches for girl {selected_profile['Name']}:")
+                    st.dataframe(matches)
+
+                    output_directory = st.text_input("Enter the output directory for saving the matches:")
+                    if st.button("Save Matches"):
+                        if not output_directory:
+                            st.error("Please enter a valid output directory.")
+                        else:
+                            file_path = save_matches_to_csv(selected_profile, matches, output_directory)
+                            st.success(f"Matches saved to {file_path}")
+
                 else:
-                    st.warning("No matches found.")
+                    st.error("JIOID not found. Please enter a valid JIOID.")
+
         except Exception as e:
-            st.error(f"Error loading or processing data: {str(e)}")
+            st.error(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
     main()
