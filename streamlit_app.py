@@ -81,7 +81,7 @@ def map_education_level(education):
     education_hierarchy = {
         'highschool': 1,
         'bachelors': 2,
-        'medicine': 3,
+        'Doctor': 3,
         'masters': 4,
         'phd': 5
     }
