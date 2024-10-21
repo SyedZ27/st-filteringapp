@@ -70,18 +70,28 @@ def clean_salary(salary_str):
 # Clean and preprocess data with updated column names
 def preprocess_data_updated(data):
     """Cleans and preprocesses the raw data with updated column names."""
+    # Strip leading and trailing spaces from column names
+    data.columns = data.columns.str.strip()
+
+    # Handling 'Date Of Birth' for age calculation
     if 'Date Of Birth' in data.columns:
         data['Date Of Birth'] = pd.to_datetime(data['Date Of Birth'], errors='coerce', dayfirst=True)
         data['Age'] = data.apply(lambda row: calculate_age(row['Date Of Birth']) if pd.notnull(row['Date Of Birth']) else row['Age'], axis=1)
-    
+    else:
+        st.warning("'Date Of Birth' column not found. Age calculation will be skipped.")
+        data['Age'] = None
+
+    # Standardize 'gender' column
     if 'gender' in data.columns:
         data['gender'] = data['gender'].str.lower().str.strip()
 
-    # Clean and standardize salary column
-    if 'Salary-PA_Standardized' in data.columns:
-        data['Salary-PA_Standardized'] = data['Salary-PA_Standardized'].apply(clean_salary)
+    # Handle potential spaces in 'Salary-PA_Standardized' column name
+    salary_col = next((col for col in data.columns if col.strip().lower() == 'salary-pa_standardized'.lower()), None)
+    if salary_col is not None:
+        data[salary_col] = data[salary_col].str.replace(' ', '').str.lower()
 
     return data
+
 
 # Split profiles into girls and boys using updated gender column
 def split_profiles_updated(profiles):
