@@ -127,7 +127,7 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
     matches = boys_profiles[
         ((boys_profiles['Hight/CM'] > girl['Hight/CM']) | pd.isnull(girl['Hight/CM'])) &
         ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
-        ((boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &  # Match boys within age range
+        ((boys_profiles['Effective_boys_Age'] >= girl_age + 5)) &  # Match boys within age range
         ((boys_profiles['Denomination'] == girl['Denomination']) | pd.isnull(girl['Denomination'])) &
         (boys_profiles['Education_Level'] >= girl_education_level)  # Exact match for education level
     ]
