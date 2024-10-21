@@ -55,7 +55,8 @@ def preprocess_data_updated(data):
     """Cleans and preprocesses the raw data with updated column names."""
     if 'Date Of Birth' in data.columns:
         data['Date Of Birth'] = pd.to_datetime(data['Date Of Birth'], errors='coerce', dayfirst=True)
-        data['Age'] = data['Date Of Birth'].apply(lambda x: calculate_age(x) if pd.notnull(x) else None)
+        # If Date of Birth is NaT (missing), use the existing Age column
+        data['Age'] = data.apply(lambda row: calculate_age(row['Date Of Birth']) if pd.notnull(row['Date Of Birth']) else row['Age'], axis=1)
     else:
         st.warning("'Date Of Birth' column not found. Age calculation will be skipped.")
         data['Age'] = None
