@@ -142,14 +142,27 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
 
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City', 'Education_Standardized', 'Salary-PA', 'Occupation', 'joined', 'expire_date', 'Mobile']]
 
-# Save matches to a CSV file
+# Save matches to a CSV file with the desired naming convention
 def save_matches_to_csv(selected_profile, matches, output_directory):
     def sanitize_filename(name):
         return "".join(c for c in name if c.isalnum() or c in (' ', '_')).rstrip()
 
+    # Get the sanitized name and JIOID from the selected profile
     sanitized_name = sanitize_filename(str(selected_profile['Name']))
-    file_path = os.path.join(output_directory, f"matches_for_{sanitized_name}.csv")
+    jioid = str(selected_profile['JIOID'])
+
+    # Get the current date in DD-MM-YYYY format
+    current_date = datetime.now().strftime("%d-%m-%Y")
+
+    # Combine the name, JIOID, and date to create the filename
+    file_name = f"{sanitized_name}_{jioid}_{current_date}.csv"
+    
+    # Create the full file path
+    file_path = os.path.join(output_directory, file_name)
+    
+    # Save the matches DataFrame to the CSV file
     matches.to_csv(file_path, index=False)
+    
     return file_path
 
 # Main function
