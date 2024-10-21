@@ -190,7 +190,9 @@ def main():
                     selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_jioid].iloc[0]
                     matches = filter_matches_for_boy_updated(selected_profile, girls_profiles)
 
-                    st.write(f"Matches for boy {selected_profile['Name']}:")
+                    # Display the number of matches for the boy
+                    num_matches = len(matches)
+                    st.write(f"{num_matches} profiles matched for boy {selected_profile['Name']}:")
                     st.dataframe(matches)
 
                     output_directory = st.text_input("Enter the output directory for saving the matches:")
@@ -205,7 +207,9 @@ def main():
                     selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
                     matches = filter_matches_for_girl_updated(selected_profile, boys_profiles)
 
-                    st.write(f"Matches for girl {selected_profile['Name']}:")
+                    # Display the number of matches for the girl
+                    num_matches = len(matches)
+                    st.write(f"{num_matches} profiles matched for girl {selected_profile['Name']}:")
                     st.dataframe(matches)
 
                     output_directory = st.text_input("Enter the output directory for saving the matches:")
@@ -217,10 +221,9 @@ def main():
                             st.success(f"Matches saved to {file_path}")
 
                 else:
-                    st.error("JIOID not found. Please enter a valid JIOID.")
-
+                    st.error("JIOID not found in the profiles.")
         except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
+            st.error(f"An error occurred while processing the file: {e}")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
