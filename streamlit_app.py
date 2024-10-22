@@ -115,7 +115,7 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
     girls_profiles['Education_Level'] = girls_profiles['Education_Standardized'].apply(map_education_level)
 
     # Apply the matching criteria
-    matches = girls_profiles[
+    matches = girls_profiles[ 
         ((girls_profiles['Hight/CM'] < boy['Hight/CM']) | pd.isnull(boy['Hight/CM'])) &
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
         ((girls_profiles['Effective_girls_Age'] > boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
@@ -193,6 +193,7 @@ def main():
                     st.error("Please enter a JIOID.")
                     return
 
+                # Filter profiles based on selected denominations and occupations
                 if selected_denominations:
                     girls_profiles = girls_profiles[girls_profiles['Denomination'].isin(selected_denominations)]
                     boys_profiles = boys_profiles[boys_profiles['Denomination'].isin(selected_denominations)]
@@ -203,6 +204,8 @@ def main():
 
                 if selected_jioid in boys_profiles['JIOID'].values:
                     selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_jioid].iloc[0]
+                    
+                    # Match based on selected profile
                     matches = filter_matches_for_boy_updated(selected_profile, girls_profiles)
 
                     # Display the number of matches for the boy
@@ -221,6 +224,8 @@ def main():
 
                 elif selected_jioid in girls_profiles['JIOID'].values:
                     selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
+                    
+                    # Match based on selected profile
                     matches = filter_matches_for_girl_updated(selected_profile, boys_profiles)
 
                     # Display the number of matches for the girl
