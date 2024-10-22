@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 import os
 
 # Load the Excel file
@@ -66,11 +65,12 @@ def preprocess_data_updated(data):
     # Strip leading and trailing spaces from column names
     data.columns = data.columns.str.strip()
 
-    # Ensure Age column is clean and ready for comparison
-    if 'Age' in data.columns:
-        data['Age'] = data['Age'].fillna(0).astype(int)
+    # Handling extra spaces or case-sensitivity in 'Age' column
+    age_column = [col for col in data.columns if col.strip().lower() == 'age']
+    if age_column:
+        data['Age'] = pd.to_numeric(data[age_column[0]].fillna(0), errors='coerce').astype(int)
     else:
-        st.error("'Age' column not found in the data.")
+        st.warning("'Age' column not found. Please check the file.")
 
     # Standardize 'gender' column
     if 'gender' in data.columns:
@@ -193,54 +193,47 @@ def main():
             data = load_data(file_path)
             data = preprocess_data_updated(data)
 
-            required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'Age', 'City', 'Education_Standardized', 'Salary-PA_Standardized', 'Occupation', 'gender', 'Mobile', 'joined', 'expire_date']
-            missing_columns = set(required_columns) - set(data.columns)
-            if missing_columns:
-                st.error(f"Missing columns in the data: {', '.join(missing_columns)}")
-                return
+            required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'gender',
+                                'Age', 'City', 'Education_Standardized', 'Salary-PA_Standardized',
+                                'Occupation', 'joined', 'expire_date', 'Mobile']
 
-            girls_profiles, boys_profiles = split_profiles_updated(data)
+            if all(col in data.columns for col in required_columns):
+                st.success("Data loaded successfully!")
 
-            selected_gender = st.selectbox("Select gender for matching", ['Female', 'Male'])
+                girls_profiles, boys_profiles = split_profiles_updated(data)
 
-            if selected_gender == 'Male':
-                selected_boy_id = st.selectbox("Select a boy's JIOID", boys_profiles['JIOID'].values)
-                selected_boy = boys_profiles[boys_profiles['JIOID'] == selected_boy_id].iloc[0]
+                gender_option = st.radio("Select Gender for Profile Matching", ('Female', 'Male'))
 
-                st.write("Selected Boy's Profile:")
-                st.write(selected_boy)
+                if gender_option == 'Male':
+                    selected_boy = st.selectbox("Select a boy's profile", boys_profiles['Name'].unique())
+                    boy_profile = boys_profiles[boys_profiles['Name'] == selected_boy].iloc[0]
+                    filtered_matches = filter_matches_for_boy_updated(boy_profile, girls_profiles)
+                    st.write("Matching profiles for selected boy:")
+                    st.dataframe(filtered_matches)
 
-                matches = filter_matches_for_boy_updated(selected_boy, girls_profiles)
-                st.write(f"Found {len(matches)} matches")
+                elif gender_option == 'Female':
+                    selected_girl = st.selectbox("Select a girl's profile", girls_profiles['Name'].unique())
+                    girl_profile = girls_profiles[girls_profiles['Name'] == selected_girl].iloc[0]
+                    filtered_matches = filter_matches_for_girl_updated(girl_profile, boys_profiles)
+                    st.write("Matching profiles for selected girl:")
+                    st.dataframe(filtered_matches)
 
-                output_directory = st.text_input("Enter directory to save the matches:")
-                if st.button("Save Matches"):
-                    if not output_directory:
-                        st.error("Please enter a valid directory.")
-                    else:
-                        output_path = save_matches_to_csv(selected_boy, matches, output_directory)
-                        st.success(f"Matches saved successfully to {output_path}")
+                # Option to save the matches to a CSV file
+                if st.button("Save Matches to CSV"):
+                    output_dir = st.text_input("Enter the output directory to save the file:", "")
+                    if output_dir:
+                        if gender_option == 'Male':
+                            file_path = save_matches_to_csv(boy_profile, filtered_matches, output_dir)
+                        elif gender_option == 'Female':
+                            file_path = save_matches_to_csv(girl_profile, filtered_matches, output_dir)
+                        st.success(f"Matches saved to {file_path}")
 
-            elif selected_gender == 'Female':
-                selected_girl_id = st.selectbox("Select a girl's JIOID", girls_profiles['JIOID'].values)
-                selected_girl = girls_profiles[girls_profiles['JIOID'] == selected_girl_id].iloc[0]
-
-                st.write("Selected Girl's Profile:")
-                st.write(selected_girl)
-
-                matches = filter_matches_for_girl_updated(selected_girl, boys_profiles)
-                st.write(f"Found {len(matches)} matches")
-
-                output_directory = st.text_input("Enter directory to save the matches:")
-                if st.button("Save Matches"):
-                    if not output_directory:
-                        st.error("Please enter a valid directory.")
-                    else:
-                        output_path = save_matches_to_csv(selected_girl, matches, output_directory)
-                        st.success(f"Matches saved successfully to {output_path}")
+            else:
+                missing_cols = [col for col in required_columns if col not in data.columns]
+                st.error(f"Missing columns in the data: {', '.join(missing_cols)}")
 
         except Exception as e:
-            st.error(f"Error processing the file: {e}")
+            st.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
