@@ -59,18 +59,11 @@ def clean_salary(salary_str):
     except ValueError:
         return None
 
-# Clean and preprocess data with updated column names
+# Clean and preprocess data
 def preprocess_data_updated(data):
-    """Cleans and preprocesses the raw data with updated column names."""
+    """Cleans and preprocesses the raw data."""
     # Strip leading and trailing spaces from column names
     data.columns = data.columns.str.strip()
-
-    # Handling extra spaces or case-sensitivity in 'Age' column
-    age_column = [col for col in data.columns if col.strip().lower() == 'age']
-    if age_column:
-        data['Age'] = pd.to_numeric(data[age_column[0]].fillna(0), errors='coerce').astype(int)
-    else:
-        st.warning("'Age' column not found. Please check the file.")
 
     # Standardize 'gender' column
     if 'gender' in data.columns:
@@ -84,7 +77,7 @@ def preprocess_data_updated(data):
 
     return data
 
-# Split profiles into girls and boys using updated gender column
+# Split profiles into girls and boys
 def split_profiles_updated(profiles):
     profiles['gender'] = profiles['gender'].str.lower().str.strip()
     girls_profiles = profiles[profiles['gender'] == 'female'].copy()
@@ -117,11 +110,9 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
     boy_education_level = map_education_level(boy['Education_Standardized'])
     girls_profiles['Education_Level'] = girls_profiles['Education_Standardized'].apply(map_education_level)
 
-    # Clean salary values for comparison
     boy_salary = boy['Salary-PA_Standardized']
     girls_profiles['Salary_Cleaned'] = girls_profiles['Salary-PA_Standardized']
 
-    # Apply the matching criteria
     matches = girls_profiles[
         ((girls_profiles['Hight/CM'] < boy['Hight/CM']) | pd.isnull(boy['Hight/CM'])) &
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
@@ -130,11 +121,9 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
         ((girls_profiles['Salary_Cleaned'] <= boy_salary) | pd.isnull(girls_profiles['Salary_Cleaned']) | pd.isnull(boy_salary))
     ]
 
-    # Split matches into same city and different city for prioritized output
     same_city_matches = matches[matches['City'] == boy['City']]
     different_city_matches = matches[matches['City'] != boy['City']]
 
-    # Concatenate same city profiles first, followed by different city profiles
     prioritized_matches = pd.concat([same_city_matches, different_city_matches])
 
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City',
@@ -148,11 +137,9 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
     girl_education_level = map_education_level(girl['Education_Standardized'])
     boys_profiles['Education_Level'] = boys_profiles['Education_Standardized'].apply(map_education_level)
 
-    # Clean salary values for comparison
     girl_salary = girl['Salary-PA_Standardized']
     boys_profiles['Salary_Cleaned'] = boys_profiles['Salary-PA_Standardized']
 
-    # Apply the matching criteria
     matches = boys_profiles[
         ((boys_profiles['Hight/CM'] > girl['Hight/CM']) | pd.isnull(girl['Hight/CM'])) &
         ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
@@ -161,11 +148,9 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
         ((boys_profiles['Salary_Cleaned'] >= girl_salary) | pd.isnull(boys_profiles['Salary_Cleaned']) | pd.isnull(girl_salary))
     ]
 
-    # Split matches into same city and different city for prioritized output
     same_city_matches = matches[matches['City'] == girl['City']]
     different_city_matches = matches[matches['City'] != girl['City']]
 
-    # Concatenate same city profiles first, followed by different city profiles
     prioritized_matches = pd.concat([same_city_matches, different_city_matches])
 
     return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City',
@@ -194,7 +179,7 @@ def main():
             data = preprocess_data_updated(data)
 
             required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'gender',
-                                'Age', 'City', 'Education_Standardized', 'Salary-PA_Standardized',
+                                'City', 'Age', 'Education_Standardized', 'Salary-PA_Standardized', 'Denomination',
                                 'Occupation', 'joined', 'expire_date', 'Mobile']
 
             if all(col in data.columns for col in required_columns):
@@ -202,38 +187,33 @@ def main():
 
                 girls_profiles, boys_profiles = split_profiles_updated(data)
 
-                gender_option = st.radio("Select Gender for Profile Matching", ('Female', 'Male'))
+                # Input field for JIOID
+                selected_jioid = st.text_input("Enter JIOID of the user to match profiles:")
 
-                if gender_option == 'Male':
-                    selected_boy = st.selectbox("Select a boy's profile", boys_profiles['Name'].unique())
-                    boy_profile = boys_profiles[boys_profiles['Name'] == selected_boy].iloc[0]
-                    filtered_matches = filter_matches_for_boy_updated(boy_profile, girls_profiles)
-                    st.write("Matching profiles for selected boy:")
-                    st.dataframe(filtered_matches)
+                if st.button("Find Matches"):
+                    if not selected_jioid:
+                        st.error("Please enter a JIOID.")
+                        return
 
-                elif gender_option == 'Female':
-                    selected_girl = st.selectbox("Select a girl's profile", girls_profiles['Name'].unique())
-                    girl_profile = girls_profiles[girls_profiles['Name'] == selected_girl].iloc[0]
-                    filtered_matches = filter_matches_for_girl_updated(girl_profile, boys_profiles)
-                    st.write("Matching profiles for selected girl:")
-                    st.dataframe(filtered_matches)
+                    if selected_jioid in boys_profiles['JIOID'].values:
+                        selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_jioid].iloc[0]
+                        matches = filter_matches_for_boy_updated(selected_profile, girls_profiles)
+                        num_matches = len(matches)
+                        st.write(f"{num_matches} profiles are matching for boy {selected_profile['Name']}.")
 
-                # Option to save the matches to a CSV file
-                if st.button("Save Matches to CSV"):
-                    output_dir = st.text_input("Enter the output directory to save the file:", "")
-                    if output_dir:
-                        if gender_option == 'Male':
-                            file_path = save_matches_to_csv(boy_profile, filtered_matches, output_dir)
-                        elif gender_option == 'Female':
-                            file_path = save_matches_to_csv(girl_profile, filtered_matches, output_dir)
-                        st.success(f"Matches saved to {file_path}")
+                    elif selected_jioid in girls_profiles['JIOID'].values:
+                        selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
+                        matches = filter_matches_for_girl_updated(selected_profile, boys_profiles)
+                        num_matches = len(matches)
+                        st.write(f"{num_matches} profiles are matching for girl {selected_profile['Name']}.")
+
+                    else:
+                        st.error(f"No profiles found for JIOID: {selected_jioid}")
 
             else:
-                missing_cols = [col for col in required_columns if col not in data.columns]
-                st.error(f"Missing columns in the data: {', '.join(missing_cols)}")
-
+                st.error("The uploaded data is missing required columns.")
         except Exception as e:
-            st.error(f"An error occurred: {e}")
+            st.error(f"Error: {e}")
 
 if __name__ == "__main__":
     main()
