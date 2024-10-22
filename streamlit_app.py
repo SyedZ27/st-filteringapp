@@ -135,7 +135,7 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
         ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
         (girls_profiles['Education_Level'] <= boy_education_level) &
-        ((girls_profiles['Salary_Cleaned'] < boy_salary) | pd.isnull(girls_profiles['Salary_Cleaned']) | pd.isnull(boy_salary))
+        ((girls_profiles['Salary_Cleaned'] <= boy_salary) | pd.isnull(girls_profiles['Salary_Cleaned']) | pd.isnull(boy_salary))
     ]
 
     # Split matches into same city and different city for prioritized output
@@ -166,7 +166,7 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
         ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
         ((boys_profiles['Effective_boys_Age'] >= girl_age) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &
         (boys_profiles['Education_Level'] >= girl_education_level) &
-        ((boys_profiles['Salary_Cleaned'] > girl_salary) | pd.isnull(boys_profiles['Salary_Cleaned']) | pd.isnull(girl_salary))
+        ((boys_profiles['Salary_Cleaned'] >= girl_salary) | pd.isnull(boys_profiles['Salary_Cleaned']) | pd.isnull(girl_salary))
     ]
 
     # Split matches into same city and different city for prioritized output
