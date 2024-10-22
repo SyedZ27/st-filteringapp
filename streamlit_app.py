@@ -133,7 +133,7 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
     matches = girls_profiles[
         ((girls_profiles['Hight/CM'] < boy['Hight/CM']) | pd.isnull(boy['Hight/CM'])) &
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
-        ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
+        ((girls_profiles['Effective_girls_Age'] > boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
         (girls_profiles['Education_Level'] <= boy_education_level) &
         ((girls_profiles['Salary_Cleaned'] <= boy_salary) | pd.isnull(girls_profiles['Salary_Cleaned']) | pd.isnull(boy_salary))
     ]
