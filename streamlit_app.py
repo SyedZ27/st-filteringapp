@@ -177,6 +177,14 @@ def main():
 
             girls_profiles, boys_profiles = split_profiles_updated(profiles)
 
+            # Dropdown for selecting denominations
+            denominations = profiles['Denomination'].unique()
+            selected_denominations = st.multiselect("Select Denomination(s)", options=denominations)
+
+            # Dropdown for selecting occupations
+            occupations = profiles['Occupation'].unique()
+            selected_occupations = st.multiselect("Select Occupation(s)", options=occupations)
+
             # Input field for JIOID
             selected_jioid = st.text_input("Enter JIOID of the user to match profiles:")
 
@@ -184,6 +192,14 @@ def main():
                 if not selected_jioid:
                     st.error("Please enter a JIOID.")
                     return
+
+                if selected_denominations:
+                    girls_profiles = girls_profiles[girls_profiles['Denomination'].isin(selected_denominations)]
+                    boys_profiles = boys_profiles[boys_profiles['Denomination'].isin(selected_denominations)]
+
+                if selected_occupations:
+                    girls_profiles = girls_profiles[girls_profiles['Occupation'].isin(selected_occupations)]
+                    boys_profiles = boys_profiles[boys_profiles['Occupation'].isin(selected_occupations)]
 
                 if selected_jioid in boys_profiles['JIOID'].values:
                     selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_jioid].iloc[0]
