@@ -8,12 +8,6 @@ def load_data(file_path):
     """Loads data from an Excel file into a pandas DataFrame."""
     return pd.read_excel(file_path)
 
-# Function to calculate age from date of birth
-def calculate_age(birthdate):
-    """Calculates age from the given birthdate."""
-    today = datetime.now()
-    return today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
-
 # Convert height to cm
 def convert_height_to_cm(height_str):
     """Converts height given in different string formats to centimeters."""
@@ -72,13 +66,11 @@ def preprocess_data_updated(data):
     # Strip leading and trailing spaces from column names
     data.columns = data.columns.str.strip()
 
-    # Handling 'Date Of Birth' for age calculation
-    if 'Date Of Birth' in data.columns:
-        data['Date Of Birth'] = pd.to_datetime(data['Date Of Birth'], errors='coerce', dayfirst=True)
-        data['Age'] = data.apply(lambda row: calculate_age(row['Date Of Birth']) if pd.notnull(row['Date Of Birth']) else row['Age'], axis=1)
-    else:
-        st.warning("'Date Of Birth' column not found. Age calculation will be skipped.")
+    # Ensure Age column is clean and ready for comparison
+    if 'Age' in data.columns:
         data['Age'] = data['Age'].fillna(0).astype(int)
+    else:
+        st.error("'Age' column not found in the data.")
 
     # Standardize 'gender' column
     if 'gender' in data.columns:
@@ -201,67 +193,54 @@ def main():
             data = load_data(file_path)
             data = preprocess_data_updated(data)
 
-            required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'gender',
-                                'City', 'Age', 'Education_Standardized', 'Salary-PA_Standardized', 'Denomination',
-                                'Occupation', 'joined', 'expire_date', 'Mobile', 'Date Of Birth']
-
-            missing_columns = [col for col in required_columns if col not in data.columns]
-
+            required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'Age', 'City', 'Education_Standardized', 'Salary-PA_Standardized', 'Occupation', 'gender', 'Mobile', 'joined', 'expire_date']
+            missing_columns = set(required_columns) - set(data.columns)
             if missing_columns:
-                st.error(f"The following required columns are missing: {', '.join(missing_columns)}")
+                st.error(f"Missing columns in the data: {', '.join(missing_columns)}")
                 return
 
-            profiles = data[required_columns]
-            profiles['JIOID'] = profiles['JIOID'].astype(str)
+            girls_profiles, boys_profiles = split_profiles_updated(data)
 
-            girls_profiles, boys_profiles = split_profiles_updated(profiles)
+            selected_gender = st.selectbox("Select gender for matching", ['Female', 'Male'])
 
-            # Input field for JIOID
-            selected_jioid = st.text_input("Enter JIOID of the user to match profiles:")
+            if selected_gender == 'Male':
+                selected_boy_id = st.selectbox("Select a boy's JIOID", boys_profiles['JIOID'].values)
+                selected_boy = boys_profiles[boys_profiles['JIOID'] == selected_boy_id].iloc[0]
 
-            if st.button("Find Matches"):
-                if not selected_jioid:
-                    st.error("Please enter a JIOID.")
-                    return
+                st.write("Selected Boy's Profile:")
+                st.write(selected_boy)
 
-                if selected_jioid in boys_profiles['JIOID'].values:
-                    selected_profile = boys_profiles[boys_profiles['JIOID'] == selected_jioid].iloc[0]
-                    matches = filter_matches_for_boy_updated(selected_profile, girls_profiles)
+                matches = filter_matches_for_boy_updated(selected_boy, girls_profiles)
+                st.write(f"Found {len(matches)} matches")
 
-                    # Display the number of matches for the boy
-                    num_matches = len(matches)
-                    st.write(f"{num_matches} profiles matched for boy {selected_profile['Name']}:")
-                    st.dataframe(matches)
+                output_directory = st.text_input("Enter directory to save the matches:")
+                if st.button("Save Matches"):
+                    if not output_directory:
+                        st.error("Please enter a valid directory.")
+                    else:
+                        output_path = save_matches_to_csv(selected_boy, matches, output_directory)
+                        st.success(f"Matches saved successfully to {output_path}")
 
-                    output_directory = st.text_input("Enter the output directory for saving the matches:")
-                    if st.button("Save Matches"):
-                        if not output_directory:
-                            st.error("Please enter a valid output directory.")
-                        else:
-                            file_path = save_matches_to_csv(selected_profile, matches, output_directory)
-                            st.success(f"Matches saved to {file_path}")
+            elif selected_gender == 'Female':
+                selected_girl_id = st.selectbox("Select a girl's JIOID", girls_profiles['JIOID'].values)
+                selected_girl = girls_profiles[girls_profiles['JIOID'] == selected_girl_id].iloc[0]
 
-                elif selected_jioid in girls_profiles['JIOID'].values:
-                    selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
-                    matches = filter_matches_for_girl_updated(selected_profile, boys_profiles)
+                st.write("Selected Girl's Profile:")
+                st.write(selected_girl)
 
-                    # Display the number of matches for the girl
-                    num_matches = len(matches)
-                    st.write(f"{num_matches} profiles matched for girl {selected_profile['Name']}:")
-                    st.dataframe(matches)
+                matches = filter_matches_for_girl_updated(selected_girl, boys_profiles)
+                st.write(f"Found {len(matches)} matches")
 
-                    output_directory = st.text_input("Enter the output directory for saving the matches:")
-                    if st.button("Save Matches"):
-                        if not output_directory:
-                            st.error("Please enter a valid output directory.")
-                        else:
-                            file_path = save_matches_to_csv(selected_profile, matches, output_directory)
-                            st.success(f"Matches saved to {file_path}")
+                output_directory = st.text_input("Enter directory to save the matches:")
+                if st.button("Save Matches"):
+                    if not output_directory:
+                        st.error("Please enter a valid directory.")
+                    else:
+                        output_path = save_matches_to_csv(selected_girl, matches, output_directory)
+                        st.success(f"Matches saved successfully to {output_path}")
 
-                else:
-                    st.error("JIOID not found in the profiles.")
         except Exception as e:
-            st.error(f"An error occurred while processing the file: {e}")
+            st.error(f"Error processing the file: {e}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
