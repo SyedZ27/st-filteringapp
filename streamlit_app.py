@@ -263,5 +263,5 @@ def main():
         except Exception as e:
             st.error(f"An error occurred while processing the file: {e}")
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     main()
