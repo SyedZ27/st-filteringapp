@@ -1,18 +1,11 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 import os
 
 # Load the Excel file
 def load_data(file_path):
     """Loads data from an Excel file into a pandas DataFrame."""
     return pd.read_excel(file_path)
-
-# Function to calculate age from date of birth
-def calculate_age(birthdate):
-    """Calculates age from the given birthdate."""
-    today = datetime.now()
-    return today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
 
 # Convert height to cm
 def convert_height_to_cm(height_str):
@@ -72,13 +65,9 @@ def preprocess_data_updated(data):
     # Strip leading and trailing spaces from column names
     data.columns = data.columns.str.strip()
 
-    # Handling 'Date Of Birth' for age calculation
-    if 'Date Of Birth' in data.columns:
-        data['Date Of Birth'] = pd.to_datetime(data['Date Of Birth'], errors='coerce', dayfirst=True)
-        data['Age'] = data.apply(lambda row: calculate_age(row['Date Of Birth']) if pd.notnull(row['Date Of Birth']) else row['Age'], axis=1)
-    else:
-        st.warning("'Date Of Birth' column not found. Age calculation will be skipped.")
-        data['Age'] = data['Age'].fillna(0).astype(int)
+    # Handling 'Age' column directly
+    data['Age'] = data['Age'].fillna(0).astype(str).str.strip()
+    data['Age'] = pd.to_numeric(data['Age'], errors='coerce').fillna(0).astype(int)
 
     # Standardize 'gender' column
     if 'gender' in data.columns:
@@ -138,16 +127,7 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
         ((girls_profiles['Salary_Cleaned'] <= boy_salary) | pd.isnull(girls_profiles['Salary_Cleaned']) | pd.isnull(boy_salary))
     ]
 
-    # Split matches into same city and different city for prioritized output
-    same_city_matches = matches[matches['City'] == boy['City']]
-    different_city_matches = matches[matches['City'] != boy['City']]
-
-    # Concatenate same city profiles first, followed by different city profiles
-    prioritized_matches = pd.concat([same_city_matches, different_city_matches])
-
-    return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City',
-                                'Education_Standardized', 'Salary-PA_Standardized', 'Occupation', 'joined',
-                                'expire_date', 'Mobile']]
+    return matches
 
 def filter_matches_for_girl_updated(girl, boys_profiles):
     girl_age = int(girl['Age']) if pd.notna(girl['Age']) else None
@@ -169,16 +149,7 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
         ((boys_profiles['Salary_Cleaned'] >= girl_salary) | pd.isnull(boys_profiles['Salary_Cleaned']) | pd.isnull(girl_salary))
     ]
 
-    # Split matches into same city and different city for prioritized output
-    same_city_matches = matches[matches['City'] == girl['City']]
-    different_city_matches = matches[matches['City'] != girl['City']]
-
-    # Concatenate same city profiles first, followed by different city profiles
-    prioritized_matches = pd.concat([same_city_matches, different_city_matches])
-
-    return prioritized_matches[['JIOID', 'Name', 'Denomination', 'Marital Status', 'Hight/CM', 'Age', 'City',
-                                'Education_Standardized', 'Salary-PA_Standardized', 'Occupation', 'joined',
-                                'expire_date', 'Mobile']]
+    return matches
 
 # Save matches to a CSV file
 def save_matches_to_csv(selected_profile, matches, output_directory):
@@ -203,7 +174,7 @@ def main():
 
             required_columns = ['JIOID', 'Name', 'Cast', 'Marital Status', 'Hight/FT', 'gender',
                                 'City', 'Age', 'Education_Standardized', 'Salary-PA_Standardized', 'Denomination',
-                                'Occupation', 'joined', 'expire_date', 'Mobile', 'Date Of Birth']
+                                'Occupation', 'joined', 'expire_date', 'Mobile']
 
             missing_columns = [col for col in required_columns if col not in data.columns]
 
@@ -233,13 +204,14 @@ def main():
                     st.write(f"{num_matches} profiles matched for boy {selected_profile['Name']}:")
                     st.dataframe(matches)
 
-                    output_directory = st.text_input("Enter the output directory for saving the matches:")
-                    if st.button("Save Matches"):
-                        if not output_directory:
-                            st.error("Please enter a valid output directory.")
+                    # Provide download option for matched profiles
+                    output_directory = st.text_input("Enter output directory to save CSV files:")
+                    if st.button("Save Matches to CSV"):
+                        if not os.path.exists(output_directory):
+                            st.error("Output directory does not exist.")
                         else:
-                            file_path = save_matches_to_csv(selected_profile, matches, output_directory)
-                            st.success(f"Matches saved to {file_path}")
+                            csv_file_path = save_matches_to_csv(selected_profile, matches, output_directory)
+                            st.success(f"Matches saved to {csv_file_path}.")
 
                 elif selected_jioid in girls_profiles['JIOID'].values:
                     selected_profile = girls_profiles[girls_profiles['JIOID'] == selected_jioid].iloc[0]
@@ -250,18 +222,19 @@ def main():
                     st.write(f"{num_matches} profiles matched for girl {selected_profile['Name']}:")
                     st.dataframe(matches)
 
-                    output_directory = st.text_input("Enter the output directory for saving the matches:")
-                    if st.button("Save Matches"):
-                        if not output_directory:
-                            st.error("Please enter a valid output directory.")
+                    # Provide download option for matched profiles
+                    output_directory = st.text_input("Enter output directory to save CSV files:")
+                    if st.button("Save Matches to CSV"):
+                        if not os.path.exists(output_directory):
+                            st.error("Output directory does not exist.")
                         else:
-                            file_path = save_matches_to_csv(selected_profile, matches, output_directory)
-                            st.success(f"Matches saved to {file_path}")
-
+                            csv_file_path = save_matches_to_csv(selected_profile, matches, output_directory)
+                            st.success(f"Matches saved to {csv_file_path}.")
                 else:
-                    st.error("JIOID not found in the profiles.")
-        except Exception as e:
-            st.error(f"An error occurred while processing the file: {e}")
+                    st.error(f"No profile found for JIOID: {selected_jioid}")
 
-if __name__ == '__main__':
+        except Exception as e:
+            st.error(f"Error loading or processing the file: {e}")
+
+if __name__ == "__main__":
     main()
