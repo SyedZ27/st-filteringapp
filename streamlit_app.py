@@ -114,12 +114,17 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
     boy_education_level = map_education_level(boy['Education_Standardized'])
     girls_profiles['Education_Level'] = girls_profiles['Education_Standardized'].apply(map_education_level)
 
+    # Clean salary values for comparison
+    boy_salary = boy['Salary-PA_Standardized']
+    girls_profiles['Salary_Cleaned'] = girls_profiles['Salary-PA_Standardized']
+
     # Apply the matching criteria
     matches = girls_profiles[
         ((girls_profiles['Hight/CM'] < boy['Hight/CM']) | pd.isnull(boy['Hight/CM'])) &
         ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
         ((girls_profiles['Effective_girls_Age'] > boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
-        (girls_profiles['Education_Level'] <= boy_education_level)
+        (girls_profiles['Education_Level'] <= boy_education_level) &
+        ((girls_profiles['Salary_Cleaned'] <= boy_salary) | pd.isnull(girls_profiles['Salary_Cleaned']) | pd.isnull(boy_salary))
     ]
 
     return matches
@@ -131,12 +136,17 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
     girl_education_level = map_education_level(girl['Education_Standardized'])
     boys_profiles['Education_Level'] = boys_profiles['Education_Standardized'].apply(map_education_level)
 
+    # Clean salary values for comparison
+    girl_salary = girl['Salary-PA_Standardized']
+    boys_profiles['Salary_Cleaned'] = boys_profiles['Salary-PA_Standardized']
+
     # Apply the matching criteria
     matches = boys_profiles[
         ((boys_profiles['Hight/CM'] > girl['Hight/CM']) | pd.isnull(girl['Hight/CM'])) &
         ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
         ((boys_profiles['Effective_boys_Age'] >= girl_age) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &
-        (boys_profiles['Education_Level'] >= girl_education_level)
+        (boys_profiles['Education_Level'] >= girl_education_level) &
+        ((boys_profiles['Salary_Cleaned'] >= girl_salary) | pd.isnull(boys_profiles['Salary_Cleaned']) | pd.isnull(girl_salary))
     ]
 
     return matches
