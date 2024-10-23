@@ -120,13 +120,12 @@ def filter_matches_for_boy_updated(boy, girls_profiles):
 
     # Apply the matching criteria for boys
     matches = girls_profiles[
-    ((girls_profiles['Hight/CM'] < boy['Hight/CM']) & pd.notna(girls_profiles['Hight/CM']) & pd.notna(boy['Hight/CM'])) &
-    ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
-    ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
-    (girls_profiles['Education_Level'] <= boy_education_level) & pd.notna(girls_profiles['Education_Level']) & pd.notna(boy['Education_Standardized']) &
-    ((girls_profiles['Salary_Cleaned'] <= boy_salary) | pd.isnull(girls_profiles['Salary_Cleaned']) | pd.isnull(boy_salary))
-]
-
+        ((girls_profiles['Hight/CM'] < boy['Hight/CM']) & pd.notna(girls_profiles['Hight/CM']) & pd.notna(boy['Hight/CM'])) &
+        ((girls_profiles['Marital Status'] == boy['Marital Status']) | pd.isnull(boy['Marital Status'])) &
+        ((girls_profiles['Effective_girls_Age'] >= boy_age - 5) & (girls_profiles['Effective_girls_Age'] <= boy_age)) &
+        (girls_profiles['Education_Level'] <= boy_education_level) & pd.notna(girls_profiles['Education_Level']) & pd.notna(boy['Education_Standardized']) &
+        ((girls_profiles['Salary_Cleaned'] <= boy_salary) | pd.isnull(girls_profiles['Salary_Cleaned']) | pd.isnull(boy_salary))
+    ]
 
     return matches
 
@@ -143,13 +142,12 @@ def filter_matches_for_girl_updated(girl, boys_profiles):
 
     # Apply the matching criteria for girls
     matches = boys_profiles[
-    ((boys_profiles['Hight/CM'] > girl['Hight/CM']) & pd.notna(boys_profiles['Hight/CM']) & pd.notna(girl['Hight/CM'])) &
-    ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
-    ((boys_profiles['Effective_boys_Age'] >= girl_age) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &
-    (boys_profiles['Education_Level'] >= girl_education_level) & pd.notna(boys_profiles['Education_Level']) & pd.notna(girl['Education_Standardized']) &
-    ((boys_profiles['Salary_Cleaned'] >= girl_salary) | pd.isnull(boys_profiles['Salary_Cleaned']) | pd.isnull(girl_salary))
-]
-
+        ((boys_profiles['Hight/CM'] > girl['Hight/CM']) & pd.notna(boys_profiles['Hight/CM']) & pd.notna(girl['Hight/CM'])) &
+        ((boys_profiles['Marital Status'] == girl['Marital Status']) | pd.isnull(girl['Marital Status'])) &
+        ((boys_profiles['Effective_boys_Age'] >= girl_age) & (boys_profiles['Effective_boys_Age'] <= girl_age + 5)) &
+        (boys_profiles['Education_Level'] >= girl_education_level) & pd.notna(boys_profiles['Education_Level']) & pd.notna(girl['Education_Standardized']) &
+        ((boys_profiles['Salary_Cleaned'] >= girl_salary) | pd.isnull(boys_profiles['Salary_Cleaned']) | pd.isnull(girl_salary))
+    ]
 
     return matches
 
